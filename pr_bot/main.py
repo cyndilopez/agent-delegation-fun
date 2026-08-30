@@ -4,20 +4,13 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 import sys
-from pathlib import Path
 
-from pr_bot.agent import resolved_model_name, run_review
-from pr_bot.models import PullRequestContext, ReviewOutput
+from pr_bot.agent import run_review
+from pr_bot.github import GitHubError, fetch_pr_context, parse_pr_url, post_review
+from pr_bot.models import ReviewOutput
 
-_FIXTURE = Path(__file__).parent / "fixtures" / "sample_pr.json"
 _SEVERITY_ORDER = ("blocker", "high", "medium", "question")
-
-
-def _load_context(path: Path) -> PullRequestContext:
-    data = json.loads(path.read_text())
-    return PullRequestContext.model_validate(data)
 
 
 def _print_review(review: ReviewOutput) -> None:
@@ -39,14 +32,41 @@ def _print_review(review: ReviewOutput) -> None:
         print()
 
 
-async def _cmd_demo() -> int:
-    ctx = _load_context(_FIXTURE)
-    model = resolved_model_name()
-    if model == "test":
-        print("Note: using pydantic-ai test model (set ANTHROPIC_API_KEY in .env for a real review)\n")
-    print(f"Reviewing: {ctx.owner}/{ctx.repo}#{ctx.number} — {ctx.title}\n")
+async def _review_pr(
+    owner: str,
+    repo: str,
+    number: int,
+    *,
+    post: bool,
+) -> int:
+    print(f"Fetching PR: {owner}/{repo}#{number}\n")
+    ctx = await fetch_pr_context(owner, repo, number)
+    print(f"Reviewing: {ctx.title}\n")
     review = await run_review(ctx)
     _print_review(review)
+
+    if post:
+        result = await post_review(owner, repo, number, review)
+        print(f"Posted review: {result.get('html_url', 'ok')}")
+    else:
+        print("Dry run — review not posted (use --post to publish to GitHub)")
+
+    return 0
+
+
+async def _cmd_review(args: argparse.Namespace) -> int:
+    try:
+        owner, repo, number = parse_pr_url(args.pr_url)
+        return await _review_pr(owner, repo, number, post=args.post)
+    except (ValueError, GitHubError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+
+def _cmd_serve(args: argparse.Namespace) -> int:
+    import uvicorn
+
+    uvicorn.run("pr_bot.webhook:app", host="0.0.0.0", port=args.port, reload=False)
     return 0
 
 
@@ -54,8 +74,18 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="PR review agent")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    demo = sub.add_parser("demo", help="Review the bundled sample PR fixture")
-    demo.set_defaults(func=lambda _: asyncio.run(_cmd_demo()))
+    review = sub.add_parser("review", help="Review a GitHub pull request")
+    review.add_argument("pr_url", help="GitHub PR URL")
+    review.add_argument(
+        "--post",
+        action="store_true",
+        help="Post the review to GitHub (default: dry run, print only)",
+    )
+    review.set_defaults(func=lambda args: asyncio.run(_cmd_review(args)))
+
+    serve = sub.add_parser("serve", help="Start webhook server for pull_request opened events")
+    serve.add_argument("--port", type=int, default=8765)
+    serve.set_defaults(func=_cmd_serve)
 
     args = parser.parse_args(argv)
     return args.func(args)
