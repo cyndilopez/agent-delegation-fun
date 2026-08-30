@@ -22,3 +22,10 @@ def test_hand_bust():
     hand.add(Card("Q", "clubs"))
     hand.add(Card("5", "spades"))
     assert hand.is_bust()
+
+
+def test_hand_value_double_ace_soft():
+    hand = Hand()
+    hand.add(Card("A", "hearts"))
+    hand.add(Card("A", "spades"))
+    assert hand.value() == 22
