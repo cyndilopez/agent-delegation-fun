@@ -16,6 +16,13 @@ class BasicPlayerStrategy(PlayerStrategy):
         return hand.value() < 17
 
 
+def should_double_down(hand, dealer_upcard):
+    """Return True when basic strategy would double down."""
+    if len(hand.cards) != 2:
+        return False
+    return hand.value() in (9, 10, 11)
+
+
 class DealerStrategy:
     """Base class for dealer strategies."""
 
