@@ -15,7 +15,6 @@ PR_URL_RE = re.compile(
 )
 
 _EVENT_BY_VERDICT = {
-    "approve": "APPROVE",
     "comment": "COMMENT",
     "request_changes": "REQUEST_CHANGES",
 }

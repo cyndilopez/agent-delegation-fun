@@ -14,7 +14,7 @@ class ReviewFinding(BaseModel):
 
 class ReviewOutput(BaseModel):
     summary: str
-    verdict: Literal["approve", "comment", "request_changes"]
+    verdict: Literal["comment", "request_changes"]
     findings: list[ReviewFinding] = Field(default_factory=list)
 
 
