@@ -4,9 +4,12 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic_ai import Agent
 
 from pr_bot.models import PullRequestContext, ReviewOutput
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 _PROMPT_PATH = Path(__file__).parent / "prompt.md"
 _MAX_PATCH_CHARS = 12_000
@@ -45,18 +48,41 @@ def _model_name() -> str:
     explicit = os.getenv("PR_BOT_MODEL")
     if explicit:
         return explicit
-    if os.getenv("OPENAI_API_KEY"):
-        return "openai:gpt-4o-mini"
+    if os.getenv("ANTHROPIC_API_KEY"):
+        return "anthropic:claude-haiku-4-5"
     return "test"
+
+
+def resolved_model_name() -> str:
+    return _model_name()
+
+
+def _anthropic_model_id(model: str) -> str:
+    prefix = "anthropic:"
+    return model[len(prefix) :] if model.startswith(prefix) else model
 
 
 @lru_cache(maxsize=1)
 def _get_agent() -> Agent[None, ReviewOutput]:
-    return Agent(
-        _model_name(),
-        output_type=ReviewOutput,
-        system_prompt=_load_system_prompt(),
-    )
+    model = _model_name()
+    system_prompt = _load_system_prompt()
+    workspace_id = os.getenv("ANTHROPIC_WORKSPACE_ID")
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+
+    if workspace_id and api_key and model.startswith("anthropic:"):
+        from anthropic import AsyncAnthropic
+        from pydantic_ai.models.anthropic import AnthropicModel
+        from pydantic_ai.providers.anthropic import AnthropicProvider
+
+        client = AsyncAnthropic(
+            api_key=api_key,
+            default_headers={"anthropic-workspace-id": workspace_id},
+        )
+        provider = AnthropicProvider(anthropic_client=client)
+        anthropic_model = AnthropicModel(_anthropic_model_id(model), provider=provider)
+        return Agent(anthropic_model, output_type=ReviewOutput, system_prompt=system_prompt)
+
+    return Agent(model, output_type=ReviewOutput, system_prompt=system_prompt)
 
 
 async def run_review(ctx: PullRequestContext) -> ReviewOutput:

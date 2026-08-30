@@ -8,7 +8,7 @@ import json
 import sys
 from pathlib import Path
 
-from pr_bot.agent import run_review
+from pr_bot.agent import resolved_model_name, run_review
 from pr_bot.models import PullRequestContext, ReviewOutput
 
 _FIXTURE = Path(__file__).parent / "fixtures" / "sample_pr.json"
@@ -41,6 +41,9 @@ def _print_review(review: ReviewOutput) -> None:
 
 async def _cmd_demo() -> int:
     ctx = _load_context(_FIXTURE)
+    model = resolved_model_name()
+    if model == "test":
+        print("Note: using pydantic-ai test model (set ANTHROPIC_API_KEY in .env for a real review)\n")
     print(f"Reviewing: {ctx.owner}/{ctx.repo}#{ctx.number} — {ctx.title}\n")
     review = await run_review(ctx)
     _print_review(review)
