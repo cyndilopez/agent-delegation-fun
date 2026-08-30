@@ -9,4 +9,8 @@ Keep findings practical:
 - Questions and nits last
 - Say if the PR looks fine — don't invent issues
 
+Verdict rules (never approve):
+- `comment` — feedback only, or PR looks good with no blocking issues
+- `request_changes` — blocking issues that must be fixed before merge
+
 For agent/LLM changes, watch for prompt-only enforcement, expensive sub-agent calls, and typed structures vs re-parsed prose.
