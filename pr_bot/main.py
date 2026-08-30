@@ -66,7 +66,7 @@ async def _cmd_review(args: argparse.Namespace) -> int:
 def _cmd_serve(args: argparse.Namespace) -> int:
     import uvicorn
 
-    uvicorn.run("pr_bot.webhook:app", host="0.0.0.0", port=args.port, reload=False)
+    uvicorn.run("bots.app:app", host="0.0.0.0", port=args.port, reload=False)
     return 0
 
 
@@ -83,7 +83,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     review.set_defaults(func=lambda args: asyncio.run(_cmd_review(args)))
 
-    serve = sub.add_parser("serve", help="Start webhook server for pull_request opened events")
+    serve = sub.add_parser("serve", help="Start webhook server (PR review + CI diagnose)")
     serve.add_argument("--port", type=int, default=8765)
     serve.set_defaults(func=_cmd_serve)
 

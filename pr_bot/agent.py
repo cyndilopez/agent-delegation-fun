@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pydantic_ai import Agent
+from bot_shared.llm import create_agent
 
 from pr_bot.models import PullRequestContext, ReviewOutput
 
@@ -44,41 +44,9 @@ def _build_user_prompt(ctx: PullRequestContext) -> str:
     return "\n".join(parts)
 
 
-def _model_name() -> str:
-    explicit = os.getenv("PR_BOT_MODEL")
-    if explicit:
-        return explicit
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        raise ValueError("ANTHROPIC_API_KEY is not set (add it to .env)")
-    return "anthropic:claude-haiku-4-5"
-
-
-def _anthropic_model_id(model: str) -> str:
-    prefix = "anthropic:"
-    return model[len(prefix) :] if model.startswith(prefix) else model
-
-
 @lru_cache(maxsize=1)
-def _get_agent() -> Agent[None, ReviewOutput]:
-    model = _model_name()
-    system_prompt = _load_system_prompt()
-    workspace_id = os.getenv("ANTHROPIC_WORKSPACE_ID")
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-
-    if workspace_id and api_key and model.startswith("anthropic:"):
-        from anthropic import AsyncAnthropic
-        from pydantic_ai.models.anthropic import AnthropicModel
-        from pydantic_ai.providers.anthropic import AnthropicProvider
-
-        client = AsyncAnthropic(
-            api_key=api_key,
-            default_headers={"anthropic-workspace-id": workspace_id},
-        )
-        provider = AnthropicProvider(anthropic_client=client)
-        anthropic_model = AnthropicModel(_anthropic_model_id(model), provider=provider)
-        return Agent(anthropic_model, output_type=ReviewOutput, system_prompt=system_prompt)
-
-    return Agent(model, output_type=ReviewOutput, system_prompt=system_prompt)
+def _get_agent():
+    return create_agent(_load_system_prompt(), ReviewOutput)
 
 
 async def run_review(ctx: PullRequestContext) -> ReviewOutput:
