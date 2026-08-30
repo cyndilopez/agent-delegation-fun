@@ -48,13 +48,9 @@ def _model_name() -> str:
     explicit = os.getenv("PR_BOT_MODEL")
     if explicit:
         return explicit
-    if os.getenv("ANTHROPIC_API_KEY"):
-        return "anthropic:claude-haiku-4-5"
-    return "test"
-
-
-def resolved_model_name() -> str:
-    return _model_name()
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        raise ValueError("ANTHROPIC_API_KEY is not set (add it to .env)")
+    return "anthropic:claude-haiku-4-5"
 
 
 def _anthropic_model_id(model: str) -> str:
