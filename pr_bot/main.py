@@ -41,7 +41,7 @@ def main(argv: list[str] | None = None) -> int:
     review.add_argument("pr_url", help="GitHub PR URL")
     review.set_defaults(func=lambda args: asyncio.run(_cmd_review(args)))
 
-    serve = sub.add_parser("serve", help="Start webhook server (PR review + CI diagnose)")
+    serve = sub.add_parser("serve", help="Start webhook server (PR review, CI diagnose, docs)")
     serve.add_argument("--port", type=int, default=8765)
     serve.set_defaults(func=_cmd_serve)
 
