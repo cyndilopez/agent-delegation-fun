@@ -22,3 +22,16 @@ def test_hand_bust():
     hand.add(Card("Q", "clubs"))
     hand.add(Card("5", "spades"))
     assert hand.is_bust()
+
+
+def test_hand_is_soft():
+    soft = Hand()
+    soft.add(Card("A", "hearts"))
+    soft.add(Card("6", "clubs"))
+    assert soft.is_soft()
+
+    hard = Hand()
+    hard.add(Card("A", "hearts"))
+    hard.add(Card("K", "clubs"))
+    hard.add(Card("5", "spades"))
+    assert not hard.is_soft()

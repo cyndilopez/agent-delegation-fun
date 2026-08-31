@@ -26,3 +26,17 @@ class Hand:
 
     def is_blackjack(self):
         return len(self.cards) == 2 and self.value() == 21
+
+    def is_soft(self):
+        """True when an ace is still counted as 11."""
+        if not any(c.rank == "A" for c in self.cards):
+            return False
+        hard_total = 0
+        for c in self.cards:
+            if c.rank == "A":
+                hard_total += 1
+            elif c.rank in ("J", "Q", "K"):
+                hard_total += 10
+            else:
+                hard_total += int(c.rank)
+        return self.value() > hard_total
