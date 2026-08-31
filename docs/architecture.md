@@ -55,4 +55,4 @@ The docs agent watches for changes that need **architecture** or **README** upda
 - Renamed or removed major components
 - User-facing setup or project description changes
 
-It updates `docs/architecture.md` for structural changes and `README.md` for the project overview (running agents, triggers, AI tools, and learnings). Preserve the README sections defined in `docs_bot/prompt.md`. It does **not** update docs for routine internal changes with no documentation impact.
+It updates `docs/architecture.md` for structural changes and `README.md` for the project overview (running agents, triggers, and AI tools). Preserve the README sections defined in `docs_bot/prompt.md`. It does **not** update docs for routine internal changes with no documentation impact.

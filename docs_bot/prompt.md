@@ -23,14 +23,13 @@ Update when **user-facing project info** changes. Preserve this structure:
 2. **Running the agent layer** — setup, webhook server, CLI commands
 3. **Agents and triggers** — table of each agent, its trigger, and what it does
 4. **AI tools used** — models, frameworks, and dev tools (e.g. pydantic-ai, Claude, Cursor, GitHub API)
-5. **What did not go as planned / future improvements** — honest notes on tradeoffs and next steps
-6. **Casino simulator** — one-line pointer to the demo app (keep at bottom)
+5. **Casino simulator** — one-line pointer to the demo app (keep at bottom)
 
 Update README when:
 - New agents, packages, or CLI commands
 - Changed setup, configuration, or how to run the project
 - Changed triggers or agent behavior worth documenting
-- New AI tools or meaningful process learnings to record
+- New AI tools worth documenting
 
 Not README changes:
 - Internal refactors with no user-visible impact

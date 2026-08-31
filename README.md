@@ -45,14 +45,6 @@ python -m docs_bot.main check <pr-url>
 
 Org-linked Anthropic keys use `ANTHROPIC_WORKSPACE_ID` (sent as `anthropic-workspace-id`).
 
-## What did not go as planned / future improvements
-
-- **CI bot scope** — started as auto-fix-and-push; simplified to diagnosis-only after git automation proved fragile and hard to trust
-- **Cursor commit attribution** — `Co-authored-by: cursoragent` trailers required a history rewrite; disable in Cursor Settings → Agents → Attribution
-- **Webhook debugging** — `workflow_run` was missing from the GitHub webhook config initially; local `serve` also had no request logging
-- **Docs bot** — `docs/architecture.md` must exist on `main` before the bot can fetch it; local fallbacks help until the first docs PR merges
-- With more time: handle `pull_request` `synchronize` for reviews, add webhook logging by default, and consolidate duplicate GitHub error types across packages
-
 ## Casino simulator
 
 Separate demo app — see [`casino/README.md`](casino/README.md). Quick start: `python -m casino.simulate`
