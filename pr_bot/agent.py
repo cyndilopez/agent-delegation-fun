@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-import os
 from functools import lru_cache
 from pathlib import Path
 
-from dotenv import load_dotenv
 from bot_shared.llm import create_agent
 
 from pr_bot.models import PullRequestContext, ReviewOutput
-
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 _PROMPT_PATH = Path(__file__).parent / "prompt.md"
 _MAX_PATCH_CHARS = 12_000
