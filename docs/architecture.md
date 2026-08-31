@@ -24,7 +24,7 @@ flowchart LR
 | `pr_bot/` | `pull_request` opened | Post code review comment on PR |
 | `ci_bot/` | `workflow_run` failed | Fetch CI logs, post diagnosis comment on PR |
 | `docs_bot/` | `pull_request` opened | If docs changed, open PR updating architecture and/or README |
-| `bot_shared/` | — | Shared LLM client, GitHub auth, git ops |
+| `bot_shared/` | — | Shared LLM client and GitHub auth |
 | `bots/` | — | Unified FastAPI webhook server |
 | `casino/` | — | Blackjack simulator (unrelated demo app) |
 
@@ -55,4 +55,4 @@ The docs agent watches for changes that need **architecture** or **README** upda
 - Renamed or removed major components
 - User-facing setup or project description changes
 
-It updates `docs/architecture.md` for structural changes and `README.md` for user-facing project info. It does **not** update docs for routine internal changes with no documentation impact.
+It updates `docs/architecture.md` for structural changes and `README.md` for the project overview (running agents, triggers, AI tools, and learnings). Preserve the README sections defined in `docs_bot/prompt.md`. It does **not** update docs for routine internal changes with no documentation impact.

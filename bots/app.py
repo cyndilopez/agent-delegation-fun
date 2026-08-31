@@ -1,10 +1,11 @@
-"""Unified webhook server for pr_bot and ci_bot."""
+"""Unified webhook server for pr_bot, ci_bot, and docs_bot."""
 
 from __future__ import annotations
 
 from fastapi import FastAPI, Request
 
 from ci_bot.handler import handle_workflow_run
+from docs_bot.handler import handle_pr_for_docs
 from pr_bot.agent import run_review
 from pr_bot.github import fetch_pr_context, post_review
 
@@ -28,7 +29,9 @@ async def handle_pull_request_opened(payload: dict) -> dict[str, object]:
     ctx = await fetch_pr_context(owner, repo_name, number)
     review = await run_review(ctx)
     await post_review(owner, repo_name, number, review)
-    return {"status": "ok"}
+
+    docs_result = await handle_pr_for_docs(payload)
+    return {"status": "ok", "docs": docs_result}
 
 
 @app.post("/webhook/github")

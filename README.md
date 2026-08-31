@@ -1,46 +1,58 @@
 # agent-delegation-fun
 
-Local Python agents that act on your GitHub repo.
+This repo is a playground for GitHub-triggered Python agents. Each agent uses [pydantic-ai](https://ai.pydantic.dev/) with Claude to read repo context (PR diffs, CI logs, or architecture docs) and take a structured action on GitHub — post a review, comment with a CI diagnosis, or open a follow-up docs PR. A unrelated blackjack simulator lives under `casino/` for local test data.
 
-## Agents
+The agents share a thin `bot_shared/` layer (LLM client, GitHub auth) and run behind one FastAPI webhook server. For deeper structure, see `docs/architecture.md`.
 
-- **pr_bot**: Reviews pull requests (triggered by `pull_request` opened)
-- **ci_bot**: Diagnoses CI failures (triggered by `workflow_run` completed with failure)
-- **docs_bot**: Updates architecture and README docs when PRs change the system structure (triggered by `pull_request` opened)
-
-Each agent uses pydantic-ai + Claude to reason about context and act.
-
-## Running the webhook server
+## Running the agent layer
 
 ```bash
-python -m pr_bot.main serve
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # add ANTHROPIC_API_KEY, GITHUB_TOKEN, etc.
 ```
 
-This starts a FastAPI webhook server on port 8765 that listens for GitHub webhook events.
-
-## CLI
-
-Each agent has a CLI for manual testing:
+**Webhook mode** (production-style):
 
 ```bash
-# Review a PR
+python -m pr_bot.main serve --port 8765
+```
+
+Forward GitHub webhooks to `http://localhost:8765/webhook/github` (e.g. via [smee.io](https://smee.io)). Subscribe to **Pull requests** and **Workflow runs**.
+
+**CLI mode** (manual runs):
+
+```bash
 python -m pr_bot.main review <pr-url>
-
-# Diagnose a failed CI run
-python -m ci_bot.main diagnose <run-url>
-
-# Check a PR and open a docs update PR if needed
+python -m ci_bot.main diagnose <actions-run-url>
 python -m docs_bot.main check <pr-url>
 ```
 
-## Configuration
+## Agents and triggers
 
-Set environment variables (see `.env.example`):
+| Agent | Trigger | What it does |
+|---|---|---|
+| `pr_bot` | `pull_request` opened | Fetches the PR diff, runs a structured code review, posts comments on GitHub |
+| `ci_bot` | `workflow_run` completed (failure) | Fetches CI logs, diagnoses the failure, posts a comment on the linked PR |
+| `docs_bot` | `pull_request` opened | Compares the PR to current docs; if architecture or this README need updates, opens a separate docs PR |
 
-- `ANTHROPIC_API_KEY`, `ANTHROPIC_WORKSPACE_ID` — Claude API
-- `GITHUB_TOKEN` — GitHub API token (needs `repo`, `actions:read`, `contents:write` scopes)
-- `PR_BOT_MODEL` — optional model override (default: claude-haiku-4-5)
+## AI tools used
+
+- **Claude** (`claude-haiku-4-5` by default) via pydantic-ai for all agent reasoning and structured output
+- **Cursor** for implementation, debugging, and iterating on prompts locally
+- **GitHub API** for PRs, reviews, Actions logs, and opening docs branches/PRs
+- **smee.io** for local webhook forwarding during development
+
+Org-linked Anthropic keys use `ANTHROPIC_WORKSPACE_ID` (sent as `anthropic-workspace-id`).
+
+## What did not go as planned / future improvements
+
+- **CI bot scope** — started as auto-fix-and-push; simplified to diagnosis-only after git automation proved fragile and hard to trust
+- **Cursor commit attribution** — `Co-authored-by: cursoragent` trailers required a history rewrite; disable in Cursor Settings → Agents → Attribution
+- **Webhook debugging** — `workflow_run` was missing from the GitHub webhook config initially; local `serve` also had no request logging
+- **Docs bot** — `docs/architecture.md` must exist on `main` before the bot can fetch it; local fallbacks help until the first docs PR merges
+- With more time: handle `pull_request` `synchronize` for reviews, add webhook logging by default, and consolidate duplicate GitHub error types across packages
 
 ## Casino simulator
 
-Unrelated demo app: `python -m casino.simulate`
+Separate demo app — see [`casino/README.md`](casino/README.md). Quick start: `python -m casino.simulate`
