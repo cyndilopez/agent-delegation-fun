@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI, Request
 
 from ci_bot.handler import handle_workflow_run
 from docs_bot.handler import handle_pr_for_docs
 from pr_bot.agent import run_review
 from pr_bot.github import fetch_pr_context, post_review
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -38,6 +42,15 @@ async def handle_pull_request_opened(payload: dict) -> dict[str, object]:
 async def github_webhook(request: Request) -> dict[str, object]:
     event = request.headers.get("X-GitHub-Event", "")
     payload = await request.json()
+    delivery_id = request.headers.get("X-GitHub-Delivery", "")
+    logger.info(
+        "github webhook received",
+        extra={
+            "event": event,
+            "delivery_id": delivery_id,
+            "action": payload.get("action"),
+        },
+    )
 
     if event == "pull_request":
         return await handle_pull_request_opened(payload)
