@@ -13,7 +13,7 @@ from pr_bot.github import GitHubError, fetch_pr_context, parse_pr_url, post_revi
 async def _review_pr(owner: str, repo: str, number: int) -> int:
     ctx = await fetch_pr_context(owner, repo, number)
     review = await run_review(ctx)
-    await post_review(owner, repo, number, review)
+    await post_review(owner, repo, number, review, author_login=ctx.author_login)
     return 0
 
 
@@ -27,8 +27,17 @@ async def _cmd_review(args: argparse.Namespace) -> int:
 
 
 def _cmd_serve(args: argparse.Namespace) -> int:
+    import logging
+
     import uvicorn
 
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+    logging.getLogger("bots.app").info(
+        "starting webhook server (background tasks + self-review fix enabled)"
+    )
     uvicorn.run("bots.app:app", host="0.0.0.0", port=args.port, reload=False)
     return 0
 

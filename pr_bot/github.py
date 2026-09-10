@@ -73,10 +73,28 @@ async def fetch_pr_context(owner: str, repo: str, number: int) -> PullRequestCon
         number=number,
         title=pr["title"],
         body=pr.get("body") or "",
+        author_login=(pr.get("user") or {}).get("login") or "",
         base_branch=pr["base"]["ref"],
         head_branch=pr["head"]["ref"],
         files=files,
     )
+
+
+async def _authenticated_login(client: httpx.AsyncClient) -> str:
+    resp = await client.get("https://api.github.com/user")
+    if resp.status_code >= 400:
+        raise GitHubError(f"Failed to fetch authenticated user: {resp.status_code} {resp.text}")
+    login = resp.json().get("login")
+    if not login:
+        raise GitHubError("GitHub user response missing login")
+    return login
+
+
+def _review_event(verdict: str, *, self_review: bool) -> str:
+    event = _EVENT_BY_VERDICT[verdict]
+    if self_review and event in {"APPROVE", "REQUEST_CHANGES"}:
+        return "COMMENT"
+    return event
 
 
 def _review_body(review: ReviewOutput) -> str:
@@ -127,20 +145,39 @@ def _inline_comments(review: ReviewOutput) -> list[dict[str, object]]:
     return comments
 
 
-async def post_review(owner: str, repo: str, number: int, review: ReviewOutput) -> dict:
-    payload: dict[str, object] = {
-        "body": _review_body(review),
-        "event": _EVENT_BY_VERDICT[review.verdict],
-    }
+async def post_review(
+    owner: str,
+    repo: str,
+    number: int,
+    review: ReviewOutput,
+    *,
+    author_login: str = "",
+) -> dict:
     comments = _inline_comments(review)
-    if comments:
-        payload["comments"] = comments
+    body = _review_body(review)
 
     async with httpx.AsyncClient(headers=_headers(), timeout=60.0) as client:
-        resp = await client.post(
-            f"https://api.github.com/repos/{owner}/{repo}/pulls/{number}/reviews",
-            json=payload,
+        bot_login = await _authenticated_login(client)
+        self_review = bool(
+            author_login and author_login.lower() == bot_login.lower()
         )
+        event = _review_event(review.verdict, self_review=self_review)
+        if self_review and event == "COMMENT" and review.verdict != "comment":
+            body = (
+                f"_Review verdict `{review.verdict}` downgraded to comment because "
+                f"the bot cannot {review.verdict.replace('_', ' ')} its own pull request._\n\n"
+                f"{body}"
+            )
+
+        payload: dict[str, object] = {"body": body, "event": event}
+        if comments:
+            payload["comments"] = comments
+
+        url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{number}/reviews"
+        resp = await client.post(url, json=payload)
+        if resp.status_code >= 400 and comments:
+            # Inline comments fail when the line is not part of the diff.
+            resp = await client.post(url, json={"body": body, "event": event})
         if resp.status_code >= 400:
             raise GitHubError(f"Failed to post review: {resp.status_code} {resp.text}")
         return resp.json()
