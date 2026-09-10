@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI, Request
 
 from ci_bot.handler import handle_workflow_run
@@ -9,12 +11,16 @@ from docs_bot.handler import handle_pr_for_docs
 from pr_bot.agent import run_review
 from pr_bot.github import GitHubError, fetch_pr_context, post_review
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI()
 
+_PULL_REQUEST_ACTIONS = {"opened", "synchronize"}
 
-async def handle_pull_request_opened(payload: dict) -> dict[str, object]:
+
+async def handle_pull_request(payload: dict) -> dict[str, object]:
     action = payload.get("action")
-    if action != "opened":
+    if action not in _PULL_REQUEST_ACTIONS:
         return {"status": "ignored", "reason": "unhandled-action"}
 
     repo = payload.get("repository") or {}
@@ -43,16 +49,23 @@ async def handle_pull_request_opened(payload: dict) -> dict[str, object]:
         logger.exception("docs_bot failed after review posted")
         return {"status": "partial", "reason": "docs-failed", "review": "posted"}
 
-    return {"status": "ok", "docs": docs_result}
+    return {"status": "ok", "action": action, "docs": docs_result}
 
 
 @app.post("/webhook/github")
 async def github_webhook(request: Request) -> dict[str, object]:
     event = request.headers.get("X-GitHub-Event", "")
     payload = await request.json()
+    delivery_id = request.headers.get("X-GitHub-Delivery", "")
+    logger.info(
+        "github webhook received event=%s action=%s delivery_id=%s",
+        event,
+        payload.get("action"),
+        delivery_id,
+    )
 
     if event == "pull_request":
-        return await handle_pull_request_opened(payload)
+        return await handle_pull_request(payload)
     if event == "workflow_run":
         return await handle_workflow_run(payload)
 

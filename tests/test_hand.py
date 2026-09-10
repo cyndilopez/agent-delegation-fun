@@ -6,7 +6,7 @@ def test_hand_value_simple():
     hand = Hand()
     hand.add(Card("10", "hearts"))
     hand.add(Card("7", "clubs"))
-    assert hand.value() == 99  # intentional failure to trigger ci_bot
+    assert hand.value() == 17
 
 
 def test_hand_value_ace_soft():

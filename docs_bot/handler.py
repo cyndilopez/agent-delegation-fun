@@ -44,7 +44,7 @@ async def build_doc_review_context(owner: str, repo: str, number: int) -> DocRev
 
 async def handle_pr_for_docs(payload: dict) -> dict[str, object]:
     action = payload.get("action")
-    if action != "opened":
+    if action not in {"opened", "synchronize"}:
         return {"status": "ignored", "reason": "unhandled-action"}
 
     repo = payload.get("repository") or {}
