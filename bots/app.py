@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request
 from ci_bot.handler import handle_workflow_run
 from docs_bot.handler import handle_pr_for_docs
 from pr_bot.agent import run_review
-from pr_bot.github import fetch_pr_context, post_review
+from pr_bot.github import GitHubError, fetch_pr_context, post_review
 
 app = FastAPI()
 
@@ -26,11 +26,23 @@ async def handle_pull_request_opened(payload: dict) -> dict[str, object]:
     if not owner or not repo_name or not number:
         return {"status": "ignored", "reason": "missing-repository"}
 
-    ctx = await fetch_pr_context(owner, repo_name, number)
-    review = await run_review(ctx)
-    await post_review(owner, repo_name, number, review)
+    try:
+        ctx = await fetch_pr_context(owner, repo_name, number)
+        review = await run_review(ctx)
+        await post_review(owner, repo_name, number, review, author_login=ctx.author_login)
+    except GitHubError as exc:
+        logger.exception("pull_request review failed")
+        return {"status": "error", "reason": "github-error", "message": str(exc)}
+    except Exception:
+        logger.exception("pull_request review failed")
+        raise
 
-    docs_result = await handle_pr_for_docs(payload)
+    try:
+        docs_result = await handle_pr_for_docs(payload)
+    except Exception:
+        logger.exception("docs_bot failed after review posted")
+        return {"status": "partial", "reason": "docs-failed", "review": "posted"}
+
     return {"status": "ok", "docs": docs_result}
 
 
