@@ -18,7 +18,7 @@ cp .env.example .env   # add ANTHROPIC_API_KEY, GITHUB_TOKEN, etc.
 python -m pr_bot.main serve --port 8765
 ```
 
-Forward GitHub webhooks to `http://localhost:8765/webhook/github` (e.g. via [smee.io](https://smee.io)). Subscribe to **Pull requests** and **Workflow runs**.
+Forward GitHub webhooks to `http://localhost:8765/webhook/github` (e.g. via [smee.io](https://smee.io)). Subscribe to **Pull requests** and **Workflow runs**. Webhook deliveries are logged at INFO level when the server starts with `python -m pr_bot.main serve`.
 
 **CLI mode** (manual runs):
 
@@ -34,7 +34,7 @@ python -m docs_bot.main check <pr-url>
 |---|---|---|
 | `pr_bot` | `pull_request` opened | Fetches the PR diff, runs a structured code review, posts comments on GitHub |
 | `ci_bot` | `workflow_run` completed (failure) | Fetches CI logs, diagnoses the failure, posts a comment on the linked PR |
-| `docs_bot` | `pull_request` opened | Compares the PR to current docs; if architecture or this README need updates, opens a separate docs PR |
+| `docs_bot` | `pull_request` opened or synchronized | Compares the PR to current docs; if architecture or this README need updates, opens a separate docs PR |
 
 ## AI tools used
 
