@@ -18,7 +18,7 @@ cp .env.example .env   # add ANTHROPIC_API_KEY, GITHUB_TOKEN, etc.
 python -m pr_bot.main serve --port 8765
 ```
 
-Forward GitHub webhooks to `http://localhost:8765/webhook/github` (e.g. via [smee.io](https://smee.io)). Subscribe to **Pull requests** and **Workflow runs**.
+Forward GitHub webhooks to `http://localhost:8765/webhook/github` (e.g. via [smee.io](https://smee.io)). Subscribe to **Pull requests** and **Workflow runs**. Webhook deliveries are logged at INFO when the server starts with `python -m pr_bot.main serve`.
 
 **CLI mode** (manual runs):
 

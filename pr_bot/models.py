@@ -30,6 +30,7 @@ class PullRequestContext(BaseModel):
     number: int
     title: str
     body: str = ""
+    author_login: str = ""
     base_branch: str = "main"
     head_branch: str = "feature"
     files: list[ChangedFile] = Field(default_factory=list)

@@ -68,7 +68,19 @@ def create_branch_with_edits(
             ],
             cwd=workdir,
         )
-        _run(["git", "push", "-u", "origin", new_branch], cwd=workdir)
+        _run(["git", "push", "-u", "origin", new_branch, "--force-with-lease"], cwd=workdir)
+
+
+async def find_open_pull_request(owner: str, repo: str, head_branch: str) -> dict | None:
+    async with httpx.AsyncClient(headers=github_headers(), timeout=60.0) as client:
+        resp = await client.get(
+            f"https://api.github.com/repos/{owner}/{repo}/pulls",
+            params={"head": f"{owner}:{head_branch}", "state": "open", "per_page": 1},
+        )
+        if resp.status_code >= 400:
+            raise GitHubError(f"Failed to list PRs: {resp.status_code} {resp.text}")
+        items = resp.json()
+        return items[0] if items else None
 
 
 async def open_pull_request(
@@ -80,6 +92,10 @@ async def open_pull_request(
     title: str,
     body: str,
 ) -> dict:
+    existing = await find_open_pull_request(owner, repo, head_branch)
+    if existing:
+        return existing
+
     payload = {"title": title, "head": head_branch, "base": base_branch, "body": body}
     async with httpx.AsyncClient(headers=github_headers(), timeout=60.0) as client:
         resp = await client.post(f"https://api.github.com/repos/{owner}/{repo}/pulls", json=payload)
