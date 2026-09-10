@@ -68,7 +68,7 @@ def create_branch_with_edits(
             ],
             cwd=workdir,
         )
-        _run(["git", "push", "-u", "origin", new_branch], cwd=workdir)
+        _run(["git", "push", "-u", "origin", new_branch, "--force-with-lease"], cwd=workdir)
 
 
 async def open_pull_request(
