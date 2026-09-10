@@ -53,9 +53,14 @@ async def handle_pr_for_docs(payload: dict) -> dict[str, object]:
     repo_name = repo.get("name")
     pr = payload.get("pull_request") or {}
     number = pr.get("number")
+    head_ref = (pr.get("head") or {}).get("ref", "")
 
     if not owner or not repo_name or not number:
         return {"status": "ignored", "reason": "missing-repository"}
+
+    # Docs PRs we open also fire pull_request opened — ignore them or we cascade.
+    if head_ref.startswith("docs/"):
+        return {"status": "ignored", "reason": "docs-bot-branch"}
 
     doc_ctx = await build_doc_review_context(owner, repo_name, number)
     update = await run_doc_review(doc_ctx)
