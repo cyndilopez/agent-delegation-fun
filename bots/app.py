@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 
 from fastapi import BackgroundTasks, FastAPI, Request
@@ -9,7 +10,7 @@ from fastapi import BackgroundTasks, FastAPI, Request
 from ci_bot.handler import handle_workflow_run
 from docs_bot.handler import handle_pr_for_docs
 from pr_bot.agent import run_review
-from pr_bot.github import GitHubError, fetch_pr_context, post_review
+from pr_bot.github import fetch_pr_context, post_review
 
 logger = logging.getLogger(__name__)
 
@@ -52,12 +53,9 @@ async def handle_pull_request(payload: dict) -> dict[str, object]:
         ctx = await fetch_pr_context(owner, repo_name, number)
         review = await run_review(ctx)
         await post_review(owner, repo_name, number, review, author_login=ctx.author_login)
-    except GitHubError as exc:
+    except Exception as exc:
         logger.exception("pull_request review failed")
-        return {"status": "error", "reason": "github-error", "message": str(exc)}
-    except Exception:
-        logger.exception("pull_request review failed")
-        raise
+        return {"status": "error", "reason": "review-failed", "message": str(exc)}
 
     try:
         docs_result = await handle_pr_for_docs(payload)
@@ -74,8 +72,22 @@ async def github_webhook(
     background_tasks: BackgroundTasks,
 ) -> dict[str, object]:
     event = request.headers.get("X-GitHub-Event", "")
-    payload = await request.json()
     delivery_id = request.headers.get("X-GitHub-Delivery", "")
+
+    try:
+        body = await request.body()
+        if not body.strip():
+            logger.warning("webhook empty body event=%s delivery_id=%s", event, delivery_id)
+            return {"status": "error", "reason": "empty-body"}
+        payload = json.loads(body)
+    except Exception:
+        logger.exception(
+            "webhook invalid json event=%s delivery_id=%s",
+            event,
+            delivery_id,
+        )
+        return {"status": "error", "reason": "invalid-json"}
+
     action = payload.get("action")
     logger.info(
         "github webhook received event=%s action=%s delivery_id=%s",

@@ -35,6 +35,9 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+    logging.getLogger("bots.app").info(
+        "starting webhook server (background tasks + self-review fix enabled)"
+    )
     uvicorn.run("bots.app:app", host="0.0.0.0", port=args.port, reload=False)
     return 0
 
