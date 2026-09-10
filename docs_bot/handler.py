@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from docs_bot.agent import run_doc_review
+from bot_shared.github_auth import GitHubError
 from docs_bot.git_ops import GitError, create_branch_with_edits, open_pull_request
 from docs_bot.github import ARCHITECTURE_PATH, README_PATH, fetch_file
 from docs_bot.models import DocReviewContext
@@ -82,7 +83,7 @@ async def handle_pr_for_docs(payload: dict) -> dict[str, object]:
             title=update.pr_title,
             body=update.pr_body or update.summary,
         )
-    except GitError as exc:
+    except (GitError, GitHubError) as exc:
         return {"status": "error", "reason": "git-failed", "message": str(exc)}
 
     return {

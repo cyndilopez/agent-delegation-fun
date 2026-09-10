@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import FastAPI, Request
+from fastapi import BackgroundTasks, FastAPI, Request
 
 from ci_bot.handler import handle_workflow_run
 from docs_bot.handler import handle_pr_for_docs
@@ -16,6 +16,22 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 _PULL_REQUEST_ACTIONS = {"opened", "synchronize"}
+
+
+async def _run_pull_request(payload: dict) -> None:
+    try:
+        result = await handle_pull_request(payload)
+        logger.info("pull_request handled: %s", result)
+    except Exception:
+        logger.exception("pull_request handler failed")
+
+
+async def _run_workflow_run(payload: dict) -> None:
+    try:
+        result = await handle_workflow_run(payload)
+        logger.info("workflow_run handled: %s", result)
+    except Exception:
+        logger.exception("workflow_run handler failed")
 
 
 async def handle_pull_request(payload: dict) -> dict[str, object]:
@@ -53,20 +69,26 @@ async def handle_pull_request(payload: dict) -> dict[str, object]:
 
 
 @app.post("/webhook/github")
-async def github_webhook(request: Request) -> dict[str, object]:
+async def github_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks,
+) -> dict[str, object]:
     event = request.headers.get("X-GitHub-Event", "")
     payload = await request.json()
     delivery_id = request.headers.get("X-GitHub-Delivery", "")
+    action = payload.get("action")
     logger.info(
         "github webhook received event=%s action=%s delivery_id=%s",
         event,
-        payload.get("action"),
+        action,
         delivery_id,
     )
 
     if event == "pull_request":
-        return await handle_pull_request(payload)
+        background_tasks.add_task(_run_pull_request, payload)
+        return {"status": "accepted", "event": event, "action": action}
     if event == "workflow_run":
-        return await handle_workflow_run(payload)
+        background_tasks.add_task(_run_workflow_run, payload)
+        return {"status": "accepted", "event": event, "action": action}
 
     return {"status": "ignored", "reason": "unhandled-event"}

@@ -173,10 +173,11 @@ async def post_review(
         if comments:
             payload["comments"] = comments
 
-        resp = await client.post(
-            f"https://api.github.com/repos/{owner}/{repo}/pulls/{number}/reviews",
-            json=payload,
-        )
+        url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{number}/reviews"
+        resp = await client.post(url, json=payload)
+        if resp.status_code >= 400 and comments:
+            # Inline comments fail when the line is not part of the diff.
+            resp = await client.post(url, json={"body": body, "event": event})
         if resp.status_code >= 400:
             raise GitHubError(f"Failed to post review: {resp.status_code} {resp.text}")
         return resp.json()
