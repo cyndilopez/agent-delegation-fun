@@ -2,7 +2,7 @@
 
 This repo is a playground for GitHub-triggered Python agents. Each agent uses [pydantic-ai](https://ai.pydantic.dev/) with Claude to read repo context (PR diffs, CI logs, or architecture docs) and take a structured action on GitHub — post a review, comment with a CI diagnosis, or open a follow-up docs PR. A unrelated blackjack simulator lives under `casino/` for local test data.
 
-The agents share a thin `bot_shared/` layer (LLM client, GitHub auth) and run behind one FastAPI webhook server. For deeper structure, see `docs/architecture.md`.
+The agents share a thin `bot_shared/` layer (LLM client, GitHub auth) and run behind one FastAPI webhook server. Incoming webhook deliveries are logged at INFO. For deeper structure, see `docs/architecture.md`.
 
 ## Running the agent layer
 
