@@ -34,7 +34,7 @@ python -m docs_bot.main check <pr-url>
 |---|---|---|
 | `pr_bot` | `pull_request` opened | Fetches the PR diff, runs a structured code review, posts comments on GitHub |
 | `ci_bot` | `workflow_run` completed (failure) | Fetches CI logs, diagnoses the failure, posts a comment on the linked PR |
-| `docs_bot` | `pull_request` opened | Compares the PR to current docs; if architecture or this README need updates, opens a separate docs PR |
+| `docs_bot` | `pull_request` opened (non-`docs/*` branches only) | Compares the PR to current docs; if architecture or this README need updates, opens one follow-up docs PR |
 
 ## AI tools used
 
